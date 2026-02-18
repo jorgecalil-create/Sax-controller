@@ -1,0 +1,350 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sax Notes</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#111a33;
+      --text:#e9edf7;
+      --muted:#9aa7c7;
+      --good:#2dd4bf;
+      --bad:#fb7185;
+      --accent:#60a5fa;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% 10%, #1b2b6a33, transparent 60%),
+                  radial-gradient(900px 500px at 80% 30%, #60a5fa22, transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .wrap{
+      width:min(900px, 100%);
+      display:grid;
+      gap:16px;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      background: linear-gradient(180deg, #111a33, #0e1530);
+      border:1px solid #ffffff1a;
+      border-radius:16px;
+      box-shadow: 0 12px 30px #00000055;
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .title h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.4px;
+    }
+    .title .sub{
+      font-size:13px;
+      color:var(--muted);
+    }
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background: #475569;
+      box-shadow: 0 0 0 4px #47556922;
+    }
+    .dot.connected{
+      background: var(--good);
+      box-shadow: 0 0 0 4px #2dd4bf22;
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    button{
+      cursor:pointer;
+      border:1px solid #ffffff22;
+      background: #0f1733;
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:12px;
+      font-size:14px;
+      transition: transform .06s ease, border-color .2s ease, background .2s ease;
+    }
+    button:hover{ border-color:#ffffff44; background:#121d40; }
+    button:active{ transform: translateY(1px); }
+    button.secondary{
+      background: transparent;
+      color: var(--muted);
+    }
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
+    .card{
+      background: linear-gradient(180deg, #111a33, #0e1530);
+      border:1px solid #ffffff1a;
+      border-radius:16px;
+      box-shadow: 0 12px 30px #00000055;
+      padding:18px;
+    }
+
+    .now{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:12px;
+      align-items:end;
+    }
+    .label{
+      color:var(--muted);
+      font-size:13px;
+      letter-spacing:.3px;
+    }
+    .note{
+      font-size:72px;
+      line-height:1;
+      letter-spacing:1px;
+      font-weight:700;
+      color: var(--text);
+      text-shadow: 0 10px 40px #00000088;
+    }
+    .badge{
+      align-self:start;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid #ffffff22;
+      color: var(--muted);
+    }
+
+    .tapeWrap{
+      margin-top:12px;
+      padding:14px;
+      border-radius:14px;
+      border:1px dashed #ffffff22;
+      background: #0b122a;
+      overflow:hidden;
+      position:relative;
+      height:72px;
+    }
+    .tape{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      height:100%;
+      position:relative;
+    }
+    .chip{
+      min-width:64px;
+      height:44px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #ffffff22;
+      background: #0f1733;
+      color:var(--text);
+      font-weight:700;
+      font-size:22px;
+      letter-spacing:.6px;
+      box-shadow: 0 8px 18px #00000055;
+    }
+    .chip.x{
+      border-color:#fb718533;
+      color:#fecdd3;
+      background:#2a0f18;
+    }
+
+    /* New note animation: slide in from right to left */
+    @keyframes slideIn {
+      from { transform: translateX(260px); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+    .animateIn{
+      animation: slideIn .35s ease-out;
+    }
+
+    .footer{
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      margin-top:6px;
+    }
+    code{
+      background:#0b122a;
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid #ffffff1a;
+      color:#cbd5ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="title">
+        <h1>🎷 Sax Note Monitor</h1>
+        <div class="sub">Bluetooth (BLE) → live notes from your Arduino</div>
+      </div>
+
+      <div class="controls">
+        <div class="status">
+          <span id="dot" class="dot"></span>
+          <span id="statusText">Disconnected</span>
+        </div>
+        <button id="connectBtn">Connect</button>
+        <button id="disconnectBtn" class="secondary" disabled>Disconnect</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="now">
+        <div>
+          <div class="label">NOW PLAYING</div>
+          <div id="nowNote" class="note">--</div>
+        </div>
+        <div class="badge" id="deviceName">Device: —</div>
+      </div>
+
+      <div class="label" style="margin-top:14px;">LAST 8 NOTES (scrolling)</div>
+      <div class="tapeWrap">
+        <div id="tape" class="tape"></div>
+      </div>
+
+      <div class="footer">
+        Tip: Use <code>Chrome</code> or <code>Edge</code. iPhone browsers don’t support Web Bluetooth.
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
+  const NOTE_UUID    = "19b10001-e8f2-537e-4f6c-d104768a1214";
+
+  let device = null;
+  let server = null;
+  let noteChar = null;
+
+  const dot = document.getElementById("dot");
+  const statusText = document.getElementById("statusText");
+  const nowNote = document.getElementById("nowNote");
+  const tape = document.getElementById("tape");
+  const deviceNameEl = document.getElementById("deviceName");
+  const connectBtn = document.getElementById("connectBtn");
+  const disconnectBtn = document.getElementById("disconnectBtn");
+
+  // Maintain last 8 notes
+  let history = Array(8).fill("..");
+
+  function setConnectedUI(isConnected) {
+    dot.classList.toggle("connected", isConnected);
+    statusText.textContent = isConnected ? "Connected" : "Disconnected";
+    connectBtn.disabled = isConnected;
+    disconnectBtn.disabled = !isConnected;
+  }
+
+  function renderHistory(newNote2) {
+    // Update now playing
+    nowNote.textContent = newNote2.trim() || newNote2;
+
+    // Update history
+    history.shift();
+    history.push(newNote2);
+
+    // Rebuild tape
+    tape.innerHTML = "";
+    history.forEach((n, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "chip" + (n.trim() === "X" ? " x" : "");
+      chip.textContent = n.trim() || n;
+
+      // Animate ONLY the newest chip (last one)
+      if (idx === history.length - 1) chip.classList.add("animateIn");
+      tape.appendChild(chip);
+    });
+  }
+
+  function bytesToNote2(value) {
+    // Expect exactly 2 bytes from Arduino
+    const b0 = value.getUint8(0);
+    const b1 = value.getUint8(1);
+    return String.fromCharCode(b0, b1);
+  }
+
+  async function connect() {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "SaxNote" }],
+      optionalServices: [SERVICE_UUID]
+    });
+
+    deviceNameEl.textContent = "Device: " + (device.name || "SaxNote");
+
+    device.addEventListener("gattserverdisconnected", () => {
+      setConnectedUI(false);
+    });
+
+    server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    noteChar = await service.getCharacteristic(NOTE_UUID);
+
+    // Read initial value (optional but nice)
+    try {
+      const v0 = await noteChar.readValue();
+      renderHistory(bytesToNote2(v0));
+    } catch(e) {}
+
+    await noteChar.startNotifications();
+    noteChar.addEventListener("characteristicvaluechanged", (e) => {
+      renderHistory(bytesToNote2(e.target.value));
+    });
+
+    setConnectedUI(true);
+  }
+
+  async function disconnect() {
+    try {
+      if (device && device.gatt && device.gatt.connected) {
+        device.gatt.disconnect();
+      }
+    } finally {
+      setConnectedUI(false);
+    }
+  }
+
+  connectBtn.addEventListener("click", () => connect().catch(console.error));
+  disconnectBtn.addEventListener("click", () => disconnect());
+
+  // initial
+  setConnectedUI(false);
+  // initial tape render
+  tape.innerHTML = "";
+  history.forEach((n) => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = n;
+    tape.appendChild(chip);
+  });
+</script>
+</body>
+</html>
